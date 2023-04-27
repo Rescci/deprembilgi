@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Deprem Bilgi Sayfasi</title>
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
+	<script>
+		$(document).ready(function() {
+			var alertTimeout; // Define alertTimeout variable
+
+			function getData() {
+				var alertSound = new Audio('uyari.mp3');
+
+				function showAlert(msg, duration = 60000) {
+				  $('#alert-message').text(msg)
+					.fadeIn(500)
+					.fadeOut(500)
+					.fadeIn(500)
+					.fadeOut(500)
+					.fadeIn(500);
+				  clearTimeout(alertTimeout);
+				  alertTimeout = setTimeout(function() {
+					$('#alert-message').fadeOut(500);
+				  }, duration);
+				  alertSound.play(); // play alert sound
+				}
+
+				function showTestAlert() {
+				  var testMsg = "Bu bir test uyarisidir! Lokasyon: [Test Lokasyon: Kahramanmaras]";
+				  showAlert(testMsg, 10000); // pass duration as second argument to showAlert
+				}
+
+				$('#test-button').click(function() {
+					showTestAlert();
+				});
+
+				$.ajax({
+					url: 'https://api.orhanaydogdu.com.tr/deprem/live.php?limit=175',
+					type: 'GET',
+					dataType: 'json',
+					success: function(data) {
+						$.each(data.result, function(index, element) {
+							addRowToTable(element); // add row with background color based on magnitude
+						});
+					},
+					error: function(jqXHR, textStatus, errorThrown) {
+						console.log(textStatus, errorThrown);
+					}
+				});
+			}
+
+			function getMagnitudeGradient(mag) {
+			  if (mag >= 0 && mag <= 2.5) {
+				return "linear-gradient(to right, #a1dab4, #7fcdbb)";
+			  } else if (mag > 2.5 && mag <= 4) {
+				return "linear-gradient(to right, #41b6c4, #1d91c0)";
+			  } else if (mag > 4 && mag <= 5) {
+				return "linear-gradient(to right, #fd8d3c, #fc4e2a)";
+			  } else if (mag > 5 && mag <= 6) {
+				return "linear-gradient(to right, #fecc5c, #fd8d3c)";
+			  } else {
+				return "linear-gradient(to right, #f03b20, #bd0026)";
+			  }
+			}
+
+			function addRowToTable(element) {
+			  var date = moment(element.date + ' ' + element.time, 'YYYY.MM.DD HH:mm:ss').format('DD/MM/YYYY');
+			  var time = moment(element.date + ' ' + element.time, 'YYYY.MM.DD HH:mm:ss').format('HH:mm:ss');
+			  var mag = element.mag;
+			  var depth = element.depth;
+			  var loc = element.title;
+			  var gradient = getMagnitudeGradient(mag); // get background gradient based on magnitude
+			  var depthGradient = "linear-gradient(to right, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.8))"; // set depth column background color to match date and time
+			  var row = "<tr><td style='background: rgba(255, 255, 255, 0.8); border-radius: 10px; box-shadow: 0px 0px 20px rgba(0, 0, 0, 0.2);'>" + date + "</td><td style='background: rgba(255, 255, 255, 0.8); border-radius: 10px; box-shadow: 0px 0px 20px rgba(0, 0, 0, 0.2);'>" + time + "</td><td style='background: " + gradient + "; color: white; border-radius: 10px; box-shadow: 0px 0px 20px rgba(0, 0, 0, 0.2);'>" + mag + "</td><td style='background: " + depthGradient + "; color: black; border-radius: 10px; box-shadow: 0px 0px 20px rgba(0, 0, 0, 0.2);'>" + depth + "</td><td style='background: " + gradient + "; color: white; border-radius: 10px; box-shadow: 0px 0px 20px rgba(0, 0, 0, 0.2);'>" + loc + "</td></tr>";
+			  $("#data-table tbody").append(row);
+			}
+
+			getData(); // Initial data retrieval
+
+			// Refresh data every 1 minute
+			var refreshInterval = setInterval(function() {
+				$('#data-table tbody').empty();
+				getData();
+			}, 60000);
+
+			// Show alert message if a new earthquake is reported while the table is not refreshed
+			var prevLoc = '';
+			var alertTimeout;
+			var alertInterval = setInterval(function() {
+				$.ajax({
+					url: 'https://api.orhanaydogdu.com.tr/deprem/live.php?limit=1',
+					type: 'GET',
+					dataType: 'json',
+					success: function(data) {
+						var loc = data.result[0].title;
+						if (loc !== prevLoc) {
+							prevLoc = loc;
+							var alertMsg = "Yeni Deprem! Lokasyon : " + loc;
+							showAlert(alertMsg);
+						}
+					},
+					error: function(jqXHR, textStatus, errorThrown) {
+						console.log(textStatus, errorThrown);
+					}
+				});
+			}, 1000);
+
+			// Stop refreshing data every minute after 1 hour
+			setTimeout(function() {
+				clearInterval(refreshInterval);
+			}, 3600000);
+		});
+	</script>
+	<style>
+		body {
+			font-family: 'Roboto', sans-serif;
+			background-image: url("https://2.bp.blogspot.com/-dqfnjEAC8sM/WCLBzy0NLvI/AAAAAAAAnZs/8hxLpoHIUHMNMcgUxuXiFYGogmUFIc3qgCLcB/s0/Siyah-turk-bayraklari-13.jpg");
+		}
+
+		.container {
+			max-width: 1200px;
+			margin: 0 auto;
+			padding: 20px;
+			box-sizing: border-box;
+			background-color: #fff;
+			box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.2);
+		}
+
+		h1 {
+			font-size: 36px;
+			font-weight: bold;
+			margin-bottom: 20px;
+			color: black;
+			text-align: center;
+		}
+				
+		h1:hover {
+			background-color: #E5E5E5;
+			box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.2);
+			border-radius: 15px;
+		}
+
+		table {
+			width: 100%;
+			border-collapse: collapse;
+			margin-top: 20px;
+			color: #363535;
+		}
+
+		.alert-message {
+			display: none;
+			position: fixed;
+			bottom: 20px;
+			left: 20px;
+			padding: 10px 20px;
+			border: 2px solid #ba0000;
+			border-radius: 5px;
+			background-color: #fff;
+			color: #ba0000;
+			font-weight: bold;
+			box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.2);
+		}
+
+		th, td {
+			padding: 10px;
+			text-align: left;
+			border-bottom: 1px solid #ddd;
+		}
+
+		th {
+			background-color: #f2f2f2;
+		}
+
+		tr:hover {
+			background-color: #E5E5E5;
+		}
+				
+		a {
+			color: red;
+		}
+				
+		#test-button {
+			border: 2px solid #ba0000;
+			border-radius: 5px;
+			background-color: #fff;
+			color: #ba0000;
+			font-weight: bold;
+			box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.2);
+			padding: 10px 20px;
+			margin-top: 20px;
+			cursor: cell;
+		}
+
+		#test-button:hover {
+			background-color: #ba0000;
+			color: #fff;
+		}
+
+		.modal {
+		  display: none;
+		  position: fixed;
+		  z-index: 9999;
+		  left: 0;
+		  top: 0;
+		  width: 100%;
+		  height: 100%;
+		  background-color: rgba(0, 0, 0, 0.8);
+		}
+
+		.modal-content {
+		  display: block;
+		  position: absolute;
+		  top: 50%;
+		  left: 50%;
+		  transform: translate(-50%, -50%);
+		  width: 300px;
+		  padding: 20px;
+		  background-color: #fff;
+		  border-radius: 5px;
+		}
+
+		.close {
+		  display: inline-block;
+		  position: absolute;
+		  top: 10px;
+		  right: 10px;
+		  font-size: 24px;
+		  font-weight: bold;
+		  color: #aaa;
+		  cursor: pointer;
+		}
+
+		#alert-box {
+		  position: fixed;
+		  bottom: 10px;
+		  right: 10px;
+		  padding: 10px 20px;
+		  background-color: #f44336;
+		  color: #fff;
+		  border-radius: 5px;
+		  opacity: 0;
+		  visibility: hidden;
+		  transition: opacity 0.3s, visibility 0s linear 0.3s;
+		}
+
+		#alert-box.show {
+		  opacity: 1;
+		  visibility: visible;
+		  transition: opacity 0.3s, visibility 0s linear 0s;
+		}
+	</style>
+</head>
+<body>
+	<div class="container">
+		<h1>Turkiye'de Olan Son <a>175</a> Deprem</h1>
+		<button id="test-button">Test Uyarisi</button>
+		<table id="data-table">
+			<thead>
+				<tr>
+					<th>Tarih</th>
+					<th>Saat</th>
+					<th>Buyukluk</th>
+					<th>Derinlik (km)</th>
+					<th>Lokasyon</th>
+				</tr>
+			</thead>
+			<tbody>
+			</tbody>
+		</table>
+		<div class="alert-message" id="alert-message"></div>
+	</div>
+</body>
+</html>
